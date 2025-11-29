@@ -8,6 +8,10 @@ function love.mousepressed(x, y)
 	states:mousepressed(x, y)
 end
 
+function love.keypressed(key)
+	states:keypressed(key)
+end
+
 function love.update(dt)
 	states:update(dt)
 end
