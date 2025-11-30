@@ -1,6 +1,9 @@
 local states = require("src/states")
 
 function love.load()
+	print("[*] Welcome to NetFiSh!")
+	print("[*] Client version: 0.0.1")
+	print("[*] Made by MaxPan\n")
 	states:load()
 end
 
