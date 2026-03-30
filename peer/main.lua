@@ -1,35 +1,35 @@
-local states = require("src/states")
-local netThread = love.thread.newThread("src/network.lua")
+local main = require("src/overlays/main")
 
 local mouseIdle = love.mouse.newCursor("img/cursor.png", 2, 2)
 local mouseActive = love.mouse.newCursor("img/cursorClick.png", 2, 2)
 
+local mouseX = 0
+local mouseY = 0
+
 function love.load()
 	love.mouse.setCursor(mouseIdle)
-	print("[*] Welcome to NetFiSh!")
-	print("[*] Client version: 0.0.1")
-	print("[*] Made by MaxPan")
-	netThread:start()
-	states:load()
 end
 
-function love.mousepressed(x, y)
+function love.mousepressed(x, y, button)
 	love.mouse.setCursor(mouseActive)
-	states:mousepressed(x, y)
+	main:mousepressed(x, y, button)
 end
 
-function love.mousereleased()
+function love.mousereleased(x, y, button)
 	love.mouse.setCursor(mouseIdle)
+	main:mousereleased(x, y, button)
 end
 
 function love.keypressed(key)
-	states:keypressed(key)
+	main:keypressed(key)
 end
 
 function love.update(dt)
-	states:update(dt)
+	mouseX = love.mouse.getX()
+	mouseY = love.mouse.getY()
+	main:update(dt, mouseX, mouseY)
 end
 
 function love.draw()
-	states:draw()
+	main:draw(0, 0)
 end

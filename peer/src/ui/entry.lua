@@ -1,109 +1,134 @@
-local function entry(x, y, width, height, onEnterFunc, onEnterFuncArgs)
-	return {
-		text = "",
-		active = false,
+local uiElement = require("src/ui/uiElement")
 
-		x = x or 0,
-		y = y or 0,
-		width = width or 100,
-		height = height or 20,
+local Entry = setmetatable({}, uiElement)
+Entry.__index = Entry
 
-		onEnterFunc = onEnterFunc or function()
-			print("No onEnter function")
-		end,
+Entry.new = function(self, x, y, width, height, onEnterFunc, onEnterFuncArgs)
+	assert(x, "Entry x is nil")
+	assert(y, "Entry y is nil")
+	assert(width, "Entry width is nil")
+	assert(height, "Entry height is nil")
+	local obj = {}
+	obj.text = ""
+	obj.ox = x
+	obj.oy = y
+	obj.x = x
+	obj.y = y
+	obj.width = width
+	obj.height = height
 
-		onEnterFuncArgs = onEnterFuncArgs,
+	obj.onEnterFunc = onEnterFunc
+	obj.onEnterFuncArgs = onEnterFuncArgs
 
-		textX = 0,
-		textY = 0,
+	obj.onKeyPress = nil
+	obj.onKeyPressArgs = nil
 
-		colorActive = { 1, 1, 1 },
-		colorPassive = { 0, 0, 0 },
+	obj.textX = 2
+	obj.textY = 2
 
-		colorTextCurrent = { 1, 1, 1 },
-		colorCurrent = { 0, 0, 0 },
+	obj.colorActive = { 1, 1, 1 }
+	obj.colorPassive = { 0, 0, 0 }
 
-		onClick = function(self, mouseX, mouseY)
-			if (mouseX > self.x) and (mouseX < self.x + self.width) then
-				if (mouseY > self.y) and (mouseY < self.y + self.height) then
-					self.active = not self.active
-					return
-				end
-			end
-			self.active = false
-		end,
+	obj.colorTextCurrent = { 1, 1, 1 }
+	obj.colorCurrent = { 0, 0, 0 }
 
-		onKeyboardPress = function(self, key)
-			if self.active then
-				if key:len() == 1 then
-					if love.keyboard.isDown("lctrl") then
-						if key == "c" then
-							love.system.setClipboardText(self.text)
-						elseif key == "v" then
-							self.text = self.text .. love.system.getClipboardText()
-						end
-					elseif love.keyboard.isDown("lshift") then
-						self.text = self.text .. string.upper(key)
-					else
-						self.text = self.text .. key
-					end
-				elseif key == "space" then
-					self.text = self.text .. " "
-				elseif key == "backspace" then
-					self.text = self.text:sub(1, -2)
-				elseif key == "lalt" then
-					self.text = ""
-				elseif key == "return" then
-					if self.onEnterFuncArgs then
-						self.onEnterFunc(self.onEnterFuncArgs)
-					else
-						self.onEnterFunc()
-					end
-				end
-			end
-		end,
-
-		draw = function(self, x, y, textX, textY)
-			self.x = x or self.x
-			self.y = y or self.y
-
-			if textX then
-				self.textX = textX + self.x
-			else
-				self.textX = self.x
-			end
-
-			if textY then
-				self.textY = textY + self.y
-			else
-				self.textY = self.y
-			end
-
-			if self.active then
-				self.colorCurrent = self.colorActive
-				self.colorTextCurrent = self.colorPassive
-			else
-				self.colorCurrent = self.colorPassive
-				self.colorTextCurrent = self.colorActive
-			end
-
-			love.graphics.setColor(self.colorCurrent)
-
-			love.graphics.rectangle("fill", self.x, self.y, self.width, self.height)
-
-			love.graphics.setColor(self.colorTextCurrent)
-
-			if self.active then
-				love.graphics.print(self.text .. "|", self.textX, self.textY)
-			else
-				love.graphics.print(self.text, self.textX, self.textY)
-			end
-
-			love.graphics.rectangle("line", self.x, self.y, self.width, self.height)
-
-			love.graphics.setColor(1, 1, 1)
-		end,
-	}
+	setmetatable(obj, self)
+	return obj
 end
 
-return entry
+Entry.mousepressed = function(self, mouseX, mouseY)
+	if (mouseX > self.x) and (mouseX < self.x + self.width) then
+		if (mouseY > self.y) and (mouseY < self.y + self.height) then
+			self.active = not self.active
+			return true
+		end
+	end
+	self.active = false
+	return false
+end
+
+Entry.keypressed = function(self, key)
+	if self.active then
+		if key:len() == 1 then
+			if love.keyboard.isDown("lctrl") then
+				if key == "c" then
+					love.system.setClipboardText(self.text)
+					return true
+				elseif key == "v" then
+					self.text = self.text .. love.system.getClipboardText()
+					if self.onKeyPress then
+						self:onKeyPress()
+					end
+					return true
+				end
+			elseif love.keyboard.isDown("lshift") then
+				self.text = self.text .. string.upper(key)
+				if self.onKeyPress then
+					self:onKeyPress()
+				end
+				return true
+			else
+				self.text = self.text .. key
+				if self.onKeyPress then
+					self:onKeyPress()
+				end
+				return true
+			end
+		elseif key == "space" then
+			self.text = self.text .. " "
+			if self.onKeyPress then
+				self:onKeyPress()
+			end
+			return true
+		elseif key == "backspace" then
+			self.text = self.text:sub(1, -2)
+			if self.onKeyPress then
+				self:onKeyPress()
+			end
+			return true
+			--elseif key == "lalt" then
+			--self.text = ""
+		elseif key == "return" then
+			if self.onEnterFunc then
+				if self.onEnterFuncArgs then
+					self:onEnterFunc(self.onEnterFuncArgs)
+					return true
+				else
+					self:onEnterFunc()
+					return true
+				end
+			end
+		end
+	end
+	return false
+end
+
+Entry.draw = function(self, x, y)
+	self.x = self.ox + x
+	self.y = self.oy + y
+	if self.active then
+		self.colorCurrent = self.colorActive
+		self.colorTextCurrent = self.colorPassive
+	else
+		self.colorCurrent = self.colorPassive
+		self.colorTextCurrent = self.colorActive
+	end
+
+	love.graphics.setColor(self.colorCurrent)
+
+	love.graphics.rectangle("fill", self.x, self.y, self.width, self.height)
+
+	love.graphics.setColor(self.colorTextCurrent)
+
+	if self.active then
+		love.graphics.print(self.text .. "|", self.x + self.textX, self.y + self.textY)
+	else
+		love.graphics.print(self.text, self.x + self.textX, self.y + self.textY)
+	end
+
+	love.graphics.rectangle("line", self.x, self.y, self.width, self.height)
+
+	love.graphics.setColor(1, 1, 1)
+end
+
+return Entry

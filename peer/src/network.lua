@@ -31,9 +31,12 @@ local udp
 local port = 54813
 
 local name
-local net = {}
+local net = {} -- routing table
+local dir = {} -- list of direct connection
 local data, senderIp, senderPort
 local parcedData
+
+local listen = false
 
 print("[~] Setting up UPD socket for *:" .. port)
 udp = socket.udp()
@@ -46,47 +49,27 @@ while isActive do
 	-- Processing app signal
 	signalApp = netComms:pop()
 	if signalApp then
-		print("[*] Signal from application recieved: " .. signalApp)
+		print("\n[*] Signal from application recieved: " .. signalApp)
 		parcedData = split(signalApp, "|")
+		if parcedData[0] == "l" then
+			listen = not listen
+		end
 	end
 	-- Getting data
 	data, senderIp, senderPort = udp:receivefrom()
 	if data then -- if server recieves data
 		parcedData = split(data, "|")
-		-- Processing handshake
-		if parcedData[1] == "h" and isUnique(net, senderIp, senderPort) then
-			data = "h"
-			for id, player in ipairs(net) do
-				-- collecting data from every connected player to get new user up to date
-				data = data
-					.. "|"
-					.. player.nickname
-					.. "|"
-					.. player.colorR
-					.. "|"
-					.. player.colorG
-					.. "|"
-					.. player.colorB
-				-- sending every player data about our new user
-				udp:sendto(
-					"h|" .. parcedData[2] .. "|" .. parcedData[3] .. "|" .. parcedData[4] .. "|" .. parcedData[5],
-					player.ip,
-					player.port
-				)
+		-- Processing discovery packet
+		if parcedData[1] == "d" and isUnique(net, senderIp, senderPort) then
+			data = "d"
+			for id, node in ipairs(dir) do
+				udp:sendto(data, senderIp, senderPort)
 			end
 			table.insert(net, {})
 			net[#net].ip = senderIp
-			net[#net].port = senderPort
-			net[#net].nickname = parcedData[2]
-			net[#net].colorR = parcedData[3]
-			net[#net].colorG = parcedData[4]
-			net[#net].colorB = parcedData[5]
-			net[#net].state = 1
-			net[#net].x = 0
-			net[#net].y = 0
+			net[#net].name = parcedData[2]
 			print("[*] " .. net[#net].nickname .. "#" .. #net .. " joined:")
 			print("  - ip: " .. net[#net].ip)
-			print("  - port: " .. net[#net].port)
 			udp:sendto(data, senderIp, senderPort)
 		-- Processing client data
 		elseif parcedData[1] == "g" then
