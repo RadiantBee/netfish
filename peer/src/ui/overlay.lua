@@ -22,7 +22,10 @@ Overlay.new = function(self, x, y, width, height, isActive)
 	obj.y = y
 	obj.width = width
 	obj.height = height
-	obj.isActive = isActive or true
+	obj.isActive = isActive
+	if isActive ~= false then
+		obj.isActive = true
+	end
 	obj.isHidden = false
 	obj.bgColor = { 0, 0, 0 }
 	obj.borderColor = { 1, 1, 1 }
