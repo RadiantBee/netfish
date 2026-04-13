@@ -30,6 +30,13 @@ end
 *type*|*related data*
 Data bandle types:
 
+discovery packet:
+<- d|name
+<- d|name|ip
+
+-> d|name
+-> d|name|ip 
+
 handshake:
 <- h|nickname|color
 Response to client:
@@ -106,42 +113,26 @@ function love.update(dt)
 	-- Getting data
 	data, senderIp = udp:receivefrom()
 	if data then -- if server recieves data
-		print("[*] Received: " .. data .. " from " .. senderIp)
+		print("\n[*] Received: " .. data .. " from " .. senderIp)
 		parcedData = split(data, "|")
-		-- Processing handshake
-		if parcedData[1] == "d" and isUnique(net, senderIp) then
-			data = "d"
-			for id, player in ipairs(net) do
-				-- collecting data from every connected player to get new user up to date
-				data = data
-					.. "|"
-					.. player.nickname
-					.. "|"
-					.. player.colorR
-					.. "|"
-					.. player.colorG
-					.. "|"
-					.. player.colorB
-				-- sending every player data about our new user
-				udp:sendto(
-					"h|" .. parcedData[2] .. "|" .. parcedData[3] .. "|" .. parcedData[4] .. "|" .. parcedData[5],
-					player.ip,
-					player.port
-				)
+
+		-- Processing discovery packet
+		if parcedData[1] == "d" then
+			if isUnique(net, parcedData[3] or senderIp) then
+				-- adding new peer to the rounting list:
+				table.insert(net, {})
+				net[#net].ip = parcedData[3] or senderIp
+				net[#net].name = parcedData[2]
+				net[#net].nextHop = senderIp
+				print("\n[*] " .. net[#net].name .. "#" .. #net .. " joined:")
+				print("  - ip: " .. net[#net].ip)
+				print("  - nextHop: " .. net[#net].nextHop)
+				udp:sendto("d|" .. name, senderIp, port)
 			end
-			table.insert(net, {})
-			net[#net].ip = senderIp
-			net[#net].nickname = parcedData[2]
-			net[#net].colorR = parcedData[3]
-			net[#net].colorG = parcedData[4]
-			net[#net].colorB = parcedData[5]
-			net[#net].state = 1
-			net[#net].x = 0
-			net[#net].y = 0
-			print("[*] " .. net[#net].nickname .. "#" .. #net .. " joined:")
-			print("  - ip: " .. net[#net].ip)
-			udp:sendto(data, senderIp, port)
-		-- Processing client data
+			-- spread the discovery packet
+			-- TODO:...
+
+			-- Processing client data
 		elseif parcedData[1] == "g" then
 			if tonumber(parcedData[2]) <= #net then
 				net[tonumber(parcedData[2])].x = parcedData[3]
@@ -155,7 +146,7 @@ function love.update(dt)
 				end
 			end
 		elseif parcedData[1] == "q" then
-			print("[*] Player #" .. parcedData[2] .. " " .. net[tonumber(parcedData[2])].nickname .. " has left!")
+			print("[*] Peer #" .. parcedData[2] .. " " .. net[tonumber(parcedData[2])].nickname .. " has left!")
 			table.remove(net, tonumber(parcedData[2]))
 			for _, player in ipairs(net) do
 				udp:sendto(data, player.ip, port)
