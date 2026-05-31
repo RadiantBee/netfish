@@ -155,7 +155,7 @@ function love.update(dt)
 				end
 			end
 		elseif parcedData[1] == "q" then
-			print("[*] Player #" .. parcedData[2] .. " " .. net[tonumber(parcedData[2])].nickname .. " has left!")
+			print("[*] Peer #" .. parcedData[2] .. " " .. net[tonumber(parcedData[2])].nickname .. " has left!")
 			table.remove(net, tonumber(parcedData[2]))
 			for _, player in ipairs(net) do
 				udp:sendto(data, player.ip, port)

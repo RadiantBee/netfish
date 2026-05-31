@@ -49,24 +49,25 @@ while isActive do
 	-- Processing app signal
 	signalApp = netComms:pop()
 	if signalApp then
-		print("\n[*] Signal from application recieved: " .. signalApp)
+		print("\n[*] Signal from application received: " .. signalApp)
 		parcedData = split(signalApp, "|")
 		if parcedData[1] == "l" then
 			listen = not listen
 		elseif parcedData[1] == "c" then
-			name = parcedData[2]
 			print("[*] Net name set to " .. name)
-			udp:sendto("d|" .. name, parcedData[3], port)
+			name = parcedData[2]
 			print("[*] Sending: d|" .. name .. " to " .. parcedData[3] .. ":" .. port)
+			udp:sendto("d|" .. name, parcedData[3], port)
 		end
 	end
 	-- Getting data
 	data, senderIp = udp:receivefrom()
 	if data then -- if server recieves data
+		print("\n[*] Data from " .. senderIp .. " received: " .. data)
 		parcedData = split(data, "|")
 		-- Processing discovery packet
 		if parcedData[1] == "d" and isUnique(net, senderIp) then
-			data = "d"
+			data = "d|"
 			for id, node in ipairs(dir) do
 				udp:sendto("d|" .. name, senderIp)
 			end
@@ -75,7 +76,9 @@ while isActive do
 			net[#net].name = parcedData[2]
 			print("[*] " .. net[#net].name .. "#" .. #net .. " joined:")
 			print("  - ip: " .. net[#net].ip)
+			data = data .. name
 			udp:sendto(data, senderIp)
+
 		-- Processing client data
 		elseif parcedData[1] == "g" then
 			if tonumber(parcedData[2]) <= #net then
