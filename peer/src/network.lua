@@ -49,24 +49,35 @@ while isActive do
 	-- Processing app signal
 	signalApp = netComms:pop()
 	if signalApp then
-		print("\n[*] Signal from application recieved: " .. signalApp)
+		print("\n[*] Signal from application received: " .. signalApp)
 		parcedData = split(signalApp, "|")
 		if parcedData[1] == "l" then
 			listen = not listen
 		elseif parcedData[1] == "c" then
+<<<<<<< HEAD
 			name = parcedData[2]
 			print("[*] Self name set to " .. name)
 			udp:sendto("d|" .. name, parcedData[3], port)
+=======
+			print("[*] Net name set to " .. name)
+			name = parcedData[2]
+>>>>>>> c2c66a0 (sync)
 			print("[*] Sending: d|" .. name .. " to " .. parcedData[3] .. ":" .. port)
+			udp:sendto("d|" .. name, parcedData[3], port)
 		end
 	end
 	-- Getting data
 	data, senderIp = udp:receivefrom()
 	if data then -- if server recieves data
+<<<<<<< HEAD
 		print("\n[*] Received: " .. data .. " from " .. senderIp)
+=======
+		print("\n[*] Data from " .. senderIp .. " received: " .. data)
+>>>>>>> c2c66a0 (sync)
 		parcedData = split(data, "|")
 
 		-- Processing discovery packet
+<<<<<<< HEAD
 		if parcedData[1] == "d" and isUnique(net, parcedData[3] or senderIp) then
 			if isUnique(net, parcedData[3] or senderIp) then
 				table.insert(net, {})
@@ -80,6 +91,20 @@ while isActive do
 			end
 		-- spread the discovery packet
 		-- TODO: ...
+=======
+		if parcedData[1] == "d" and isUnique(net, senderIp) then
+			data = "d|"
+			for id, node in ipairs(dir) do
+				udp:sendto("d|" .. name, senderIp)
+			end
+			table.insert(net, {})
+			net[#net].ip = senderIp
+			net[#net].name = parcedData[2]
+			print("[*] " .. net[#net].name .. "#" .. #net .. " joined:")
+			print("  - ip: " .. net[#net].ip)
+			data = data .. name
+			udp:sendto(data, senderIp)
+>>>>>>> c2c66a0 (sync)
 
 		-- Processing client data
 		elseif parcedData[1] == "g" then
