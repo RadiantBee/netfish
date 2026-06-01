@@ -10,6 +10,7 @@ local function split(s, delimiter)
 end
 
 local netComms = love.thread.getChannel("NET")
+local msg = ""
 
 local infoText = "\n[*] Welcome to " .. love.window.getTitle() .. "!\n[*] Client version: 0.0.1\n[*] Made by MaxPan"
 
@@ -107,6 +108,18 @@ menu.connectButton.func = function(self)
 	menu:saveAutofill()
 	if menu.ipEntry.text ~= "" and menu.nameEntry.text ~= "" then
 		netComms:push("c|" .. menu.nameEntry.text .. "|" .. menu.ipEntry.text)
+	end
+end
+
+menu.listenButton.func = function(self)
+	menu:saveAutofill()
+	if menu.nameEntry.text ~= "" then
+		netComms:push("l")
+		if menu.statusLab.text == "listening" then
+			menu.statusLab.text = "idle"
+		else
+			menu.statusLab.text = "listening"
+		end
 	end
 end
 
