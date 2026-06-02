@@ -85,8 +85,8 @@ print("[+] UDP socket is ready!")
 
 print("[+] Network thread mainloop is up and running!")
 while isActive do
-	-- Processing app signal
 	repeat
+		-- Processing app signal
 		signalApp = netComms:pop()
 		if signalApp then
 			print("\n[*] Signal from application received: " .. signalApp)
@@ -101,8 +101,9 @@ while isActive do
 			end
 		end
 	until not signalApp
-	-- Getting data
-	repeat -- if user recieves data
+
+	repeat
+		-- Getting data
 		data, senderIp = udp:receivefrom()
 		if data then
 			print("\n[*] Data from " .. senderIp .. " received: " .. data)

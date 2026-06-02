@@ -19,49 +19,18 @@ local function split(s, delimiter)
 end
 
 --[[
-[~] - process started
-[*] - something happened/info
-[+] - process complete successfully
-[-] - process completion failed
-[!] - Error/something important
---]]
-
---[[
-*type*|*related data*
-Data bandle types:
-
-discovery packet:
-<- d|name
-<- d|name|ip
-
--> d|name
--> d|name|ip 
-
-handshake:
-<- h|nickname|color
-Response to client:
--> h|nickname1|color1 (and the same for every user)
-Response to other clients:
--> h|nickname|color
-
-(for current usecase) game update:
-<- g|userID|gameData
-
-For Immediate Broadcasting:
- Update all other players:
- -> g|userID|gameData
-For bundled tick-based update:
- *Every player will recieve the same gamestate update*
-
-Quitting the server:
-<- q|userID
--> q|userID
+-- Communication protocol:
+-- Discovery packets:
+-- d|name| - initial discovery packet
+-- d|name|ip - discovery packet from *name* at *ip*
+-- d|from name|from ip|to name|to ip - discovery packet response to requestor
 --]]
 
 local socket = require("socket")
 
 local udp
 local port = 54813
+local ip = nil
 
 local thread = love.thread.newThread("consoleInput.lua")
 local channel = love.thread.getChannel("command")
@@ -70,6 +39,37 @@ local net = {}
 local data, senderIp
 local parcedData
 local commandID
+
+local function sendRouting(packet, name, ip)
+	for _, node in ipairs(net) do
+		if node.ip == ip and node.name == name then
+			udp:sendto(packet, node.nextHop, port)
+		end
+	end
+end
+
+local function addRoute(name, ip, nextHop)
+	table.insert(net, {})
+	net[#net].ip = ip
+	net[#net].name = name
+	net[#net].nextHop = nextHop
+end
+
+local function broadcast(packet) -- sends to all direct connections
+	for _, node in ipairs(net) do
+		if node.ip == node.nextHop then
+			udp:sendto(packet, node.ip, port)
+		end
+	end
+end
+
+local function broadcastExcept(packet, ip)
+	for _, node in ipairs(net) do
+		if node.ip ~= ip and node.ip == node.nextHop then
+			udp:sendto(packet, node.ip, port)
+		end
+	end
+end
 
 function love.load()
 	print("[~] Launching server")
@@ -90,68 +90,78 @@ function love.update(dt)
 	if commandID then
 		if commandID == 1 then
 			if #net == 0 then
-				print("[*] There are no peers chnnected to the server!")
+				print("[*] There are no peers discovered!")
 			else
 				print("[*] Peer list:")
 				for id, peer in pairs(net) do
-					print("[" .. id .. "] " .. peer.nickname .. ":")
+					print("[" .. id .. "] " .. peer.name .. ":")
 					print("  - ip: " .. peer.ip)
-					print("  - port: " .. peer.port)
+					print("  - nextHop: " .. peer.ip)
 				end
 			end
-		end
-		if commandID == 2 then
+		elseif commandID == 2 then
 			print("[~] Restarting...")
 			love.event.quit("restart")
-		end
-		if commandID == 3 then
+		elseif commandID == 3 then
 			print("[~] Quitting...")
 			love.event.quit(0)
+		elseif commandID == 4 then
+			print("[~] Quitting...")
+			broadcast("d|" .. name)
 		end
 	end
 
-	-- Getting data
-	data, senderIp = udp:receivefrom()
-	if data then -- if server recieves data
-		print("\n[*] Received: " .. data .. " from " .. senderIp)
-		parcedData = split(data, "|")
+	repeat
+		-- Getting data
+		data, senderIp = udp:receivefrom()
+		if data then
+			print("\n[*] Data from " .. senderIp .. " received: " .. data)
+			parcedData = split(data, "|")
+			-- Processing discovery packet:
+			if parcedData[1] == "d" then
+				if #parcedData == 2 then -- if initial discovery packet
+					if not ip then -- no communication established
+						ip = parcedData[5] -- establishing ip used for communication
+						print("[*] Communication ip established: " .. ip)
+					end
+					-- redirect completed packet to direct connections
+					broadcast(data .. "|" .. senderIp)
 
-		-- Processing discovery packet
-		if parcedData[1] == "d" then
-			if isUnique(net, parcedData[3] or senderIp) then
-				-- adding new peer to the rounting list:
-				table.insert(net, {})
-				net[#net].ip = parcedData[3] or senderIp
-				net[#net].name = parcedData[2]
-				net[#net].nextHop = senderIp
-				print("\n[*] " .. net[#net].name .. "#" .. #net .. " joined:")
-				print("  - ip: " .. net[#net].ip)
-				print("  - nextHop: " .. net[#net].nextHop)
-				udp:sendto("d|" .. name, senderIp, port)
-			end
-			-- spread the discovery packet
-			-- TODO:...
-
-			-- Processing client data
-		elseif parcedData[1] == "g" then
-			if tonumber(parcedData[2]) <= #net then
-				net[tonumber(parcedData[2])].x = parcedData[3]
-				net[tonumber(parcedData[2])].y = parcedData[4]
-				net[tonumber(parcedData[2])].state = parcedData[5]
-			end
-			-- Updating every other player
-			for id, player in ipairs(net) do
-				if id ~= tonumber(parcedData[2]) then
-					udp:sendto(data, player.ip, port)
+					if isUnique(net, parcedData[2], senderIp) then
+						addRoute(parcedData[2], senderIp, senderIp)
+						print("[*] " .. net[#net].name .. "#" .. #net .. " was discovered:")
+						print("  - ip: " .. net[#net].ip)
+						print("  - nextHop: " .. net[#net].nextHop)
+					end
+					udp:sendto("d|" .. name .. "|" .. ip .. "|" .. parcedData[2] .. "|" .. senderIp, senderIp, port) -- send discovery response
+				elseif #parcedData == 3 then -- if complete discovery packet
+					if isUnique(net, parcedData[2], parcedData[3]) then
+						addRoute(parcedData[2], parcedData[3], senderIp)
+						print("[*] " .. net[#net].name .. "#" .. #net .. " was discovered:")
+						print("  - ip: " .. net[#net].ip)
+						print("  - nextHop: " .. net[#net].nextHop)
+					end
+					broadcastExcept(data, senderIp)
+					sendRouting(
+						"d|" .. name .. "|" .. ip .. "|" .. parcedData[2] .. "|" .. parcedData[3],
+						parcedData[2],
+						parcedData[3]
+					) -- sending discovery response
+				end
+			elseif #parcedData == 5 then -- if discovery packet response
+				-- if server is the requestor of discovery
+				if parcedData[4] == name and parcedData[5] == ip then
+					if isUnique(net, parcedData[2], parcedData[3]) then
+						addRoute(parcedData[2], parcedData[3], senderIp)
+						print("[*] " .. net[#net].name .. "#" .. #net .. " was discovered:")
+						print("  - ip: " .. net[#net].ip)
+						print("  - nextHop: " .. net[#net].nextHop)
+					end
+				else
+					sendRouting(data, parcedData[2], parcedData[3])
 				end
 			end
-		elseif parcedData[1] == "q" then
-			print("[*] Peer #" .. parcedData[2] .. " " .. net[tonumber(parcedData[2])].nickname .. " has left!")
-			table.remove(net, tonumber(parcedData[2]))
-			for _, player in ipairs(net) do
-				udp:sendto(data, player.ip, port)
-			end
 		end
-	end
+	until not data
 	socket.sleep(0.01)
 end

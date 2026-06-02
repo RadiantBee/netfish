@@ -1,6 +1,6 @@
 -- can be improved by splitting the string and getting args
 
-local commandList = { "list", "restart", "exit" }
+local commandList = { "list", "restart", "exit", "rediscover" }
 local channel = love.thread.getChannel("command")
 while true do
 	local input = io.read()
@@ -9,6 +9,7 @@ while true do
 		print("[*] List of commands:")
 		print("  - help: show list of commands")
 		print("  - list: show list of connected players")
+		print("  - rediscover: requests new discovery packets")
 		print("  - restart: restart server")
 		print("  - exit: closes the server")
 	end
