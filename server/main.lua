@@ -1,9 +1,9 @@
 -- Name of the node:
 local name = "firebat"
 
-local function isUnique(t, ip)
+local function isUnique(t, name, ip)
 	for _, element in pairs(t) do
-		if element.ip == ip then
+		if element.name == name and element.ip == ip then
 			return false
 		end
 	end
@@ -75,7 +75,7 @@ function love.load()
 	print("[~] Launching server")
 	print("[~] Setting up UPD socket for *:" .. port)
 	udp = socket.udp()
-	udp:setsockname("*", port)
+	udp:setsockname("*", port) -- NOTE: could change to predefined ip
 	udp:settimeout(0)
 	print("[+] UDP socket is ready!")
 	thread:start()
