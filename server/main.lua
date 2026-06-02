@@ -30,7 +30,7 @@ local socket = require("socket")
 
 local udp
 local port = 54813
-local ip = nil
+local ip = "172.24.120.65"
 
 local thread = love.thread.newThread("consoleInput.lua")
 local channel = love.thread.getChannel("command")
@@ -120,10 +120,6 @@ function love.update(dt)
 			-- Processing discovery packet:
 			if parcedData[1] == "d" then
 				if #parcedData == 2 then -- if initial discovery packet
-					if not ip then -- no communication established
-						ip = parcedData[5] -- establishing ip used for communication
-						print("[*] Communication ip established: " .. ip)
-					end
 					-- redirect completed packet to direct connections
 					broadcast(data .. "|" .. senderIp)
 
