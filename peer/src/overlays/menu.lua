@@ -31,20 +31,14 @@ placeholders.draw = function(self)
 	love.graphics.rectangle("line", 150, 50, 500, 250)
 end
 
-menu.nameEntry = menu:newEntry(340, 350, 120, 20)
-menu.ipEntry = menu:newEntry(340, 375, 120, 20)
-
 menu:newLabel(297, 352, "Name:")
-menu:newLabel(390, 452, "or")
+menu.nameEntry = menu:newEntry(340, 350, 120, 20)
+
 menu:newLabel(280, 377, "Target ip:")
+menu.ipEntry = menu:newEntry(340, 375, 120, 20)
 
 menu.connectButton = menu:newButton(350, 425, 100, 20, "Connect")
 menu.connectButton.textX = 23
-menu.listenButton = menu:newButton(350, 475, 100, 20, "Listen")
-menu.listenButton.textX = 30
-
-menu:newLabel(300, 505, "Status: ")
-menu.statusLab = menu:newLabel(350, 505, "idle")
 
 -- Logic part:
 menu.autofillElement = menu:newElement()
@@ -108,18 +102,6 @@ menu.connectButton.func = function(self)
 	menu:saveAutofill()
 	if menu.ipEntry.text ~= "" and menu.nameEntry.text ~= "" then
 		netComms:push("c|" .. menu.nameEntry.text .. "|" .. menu.ipEntry.text)
-	end
-end
-
-menu.listenButton.func = function(self)
-	menu:saveAutofill()
-	if menu.nameEntry.text ~= "" then
-		netComms:push("l")
-		if menu.statusLab.text == "listening" then
-			menu.statusLab.text = "idle"
-		else
-			menu.statusLab.text = "listening"
-		end
 	end
 end
 
