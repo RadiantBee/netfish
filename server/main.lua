@@ -143,18 +143,18 @@ function love.update(dt)
 						parcedData[2],
 						parcedData[3]
 					) -- sending discovery response
-				end
-			elseif #parcedData == 5 then -- if discovery packet response
-				-- if server is the requestor of discovery
-				if parcedData[4] == name and parcedData[5] == ip then
-					if isUnique(net, parcedData[2], parcedData[3]) then
-						addRoute(parcedData[2], parcedData[3], senderIp)
-						print("[*] " .. net[#net].name .. "#" .. #net .. " was discovered:")
-						print("  - ip: " .. net[#net].ip)
-						print("  - nextHop: " .. net[#net].nextHop)
+				elseif #parcedData == 5 then -- if discovery packet response
+					-- if server is the requestor of discovery
+					if parcedData[4] == name and parcedData[5] == ip then
+						if isUnique(net, parcedData[2], parcedData[3]) then
+							addRoute(parcedData[2], parcedData[3], senderIp)
+							print("[*] " .. net[#net].name .. "#" .. #net .. " was discovered:")
+							print("  - ip: " .. net[#net].ip)
+							print("  - nextHop: " .. net[#net].nextHop)
+						end
+					else
+						sendRouting(data, parcedData[2], parcedData[3])
 					end
-				else
-					sendRouting(data, parcedData[2], parcedData[3])
 				end
 			end
 		end
